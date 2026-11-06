@@ -62,7 +62,7 @@ sealed interface Overlay {
     data class Pin(val mode: PinMode, val onDone: () -> Unit) : Overlay
 }
 
-enum class CcPage { Main, Inputs, InputSettings, Update, Setup }
+enum class CcPage { Main, Inputs, InputSettings, Setup }
 
 /**
  * Tiles a cold start reads whole before showing Home (two rows and a half, as many as can show);

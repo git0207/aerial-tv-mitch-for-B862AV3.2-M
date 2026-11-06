@@ -154,7 +154,7 @@ object GuardSetup {
         context.getSharedPreferences(PREFS, Context.MODE_PRIVATE).getBoolean(KEY_HOME_IN_FRONT, false)
 
     /**
-     * Control Center opened the system installer on a new Aerial (update/Updates.kt). When the
+     * Aerial started reinstalling itself for dex compilation (SelfCompileInstaller). When the
      * installer is done, Aerial has been replaced and its task is gone, so whatever was under it
      * shows; on Xiaomi MiTV-MFTR0 that was a PatchWall details page, not its home activity. The
      * guard of the new Aerial brings Home back then ([installerJustClosed]). Written at once: the

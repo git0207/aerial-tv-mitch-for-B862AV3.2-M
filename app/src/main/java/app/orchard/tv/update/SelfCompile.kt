@@ -15,14 +15,13 @@ import java.io.File
 
 /**
  * Has the system compile an Aerial that runs uncompiled, by installing the running APK over itself
- * together with its own dex metadata (assets/aerial-dm), the way an update from Control Center does
- * (Updates.installBySession). The same version again is an ordinary replace: settings, wallpaper,
- * photos and the permissions ADB granted stay.
+ * together with its own dex metadata (assets/aerial-dm). The same version again is an ordinary
+ * replace: settings, wallpaper, photos and the permissions ADB granted stay.
  *
  * Installed from a USB stick, an app store, TCL 多屏互动 or a phone's ADB tool, and on the update
  * from 1.71 to 1.72, Aerial runs uncompiled (odex about 48 KB, against about 8 MB compiled on
- * Xiaomi MiTV-MFTR0 and TCL MT5879), its main thread about twice as slow, until the next update from
- * Control Center (docs/PERF-2026-10-30.md).
+ * Xiaomi MiTV-MFTR0 and TCL MT5879), its main thread about twice as slow
+ * (docs/PERF-2026-10-30.md).
  *
  * Android 12 and later: by itself, once per version, a while after another app has come in front,
  * so that Aerial's restart is not seen; no confirmation is asked there. Android 9 to 11 ask for a
@@ -61,9 +60,9 @@ object SelfCompile {
 
     /** Whether reinstalling would help: Android 9+, the official package, uncompiled, metadata in the APK, not tried for this version. */
     private fun worthIt(context: Context): Boolean {
-        if (Build.VERSION.SDK_INT < 28 || !Updates.canInstall(context) || triedThisVersion(context)) return false
+        if (Build.VERSION.SDK_INT < 28 || !SelfCompileInstaller.canInstall(context) || triedThisVersion(context)) return false
         val odex = odexBytes(context) ?: return false
-        return odex < COMPILED_BYTES && Updates.ownDexMetadata(context) != null
+        return odex < COMPILED_BYTES && SelfCompileInstaller.ownDexMetadata(context) != null
     }
 
     /** Once per process, off the main thread (it reads the APK): is Aerial uncompiled? */
@@ -120,7 +119,7 @@ object SelfCompile {
         offered = false
         Log.i(TAG, "self compile: reinstalling (${if (auto) "auto" else "asked"}), odex ${odexBytes(app)} bytes")
         DiagLog.i("self compile: reinstalling (${if (auto) "auto" else "asked"})")
-        if (Build.VERSION.SDK_INT >= 28) Updates.reinstallSelf(app, auto)
+        if (Build.VERSION.SDK_INT >= 28) SelfCompileInstaller.reinstallSelf(app, auto)
     }
 
     /** ConfigReceiver's self_compile: now, whether tried or not (for testing on a TV). */

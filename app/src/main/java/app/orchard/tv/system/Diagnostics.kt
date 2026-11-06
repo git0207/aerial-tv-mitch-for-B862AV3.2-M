@@ -18,7 +18,6 @@ import app.orchard.tv.BuildConfig
 import app.orchard.tv.guard.GuardSetup
 import app.orchard.tv.guard.HomeGuardService
 import app.orchard.tv.settings.AerialSettings
-import app.orchard.tv.update.Updates
 import app.orchard.tv.wallpaper.PhoneServer
 import app.orchard.tv.wallpaper.Wallpapers
 import org.json.JSONArray
@@ -123,12 +122,6 @@ object Diagnostics {
             appendLine("Aerials     quality=${AerialSettings.aerialQuality.key} films=${app.orchard.tv.wallpaper.AerialSet.films(context).joinToString(",") { it.id.take(8) }} cache=${used / 1_048_576}/${limit / 1_048_576} MB")
         }
         appendLine("            wallpaper=${app.orchard.tv.wallpaper.Wallpapers.selectedId.substringBefore('/')} always_moves=${AerialSettings.wallpaperAlwaysMoves} quality=${AerialSettings.aerialQuality.key} weather=${AerialSettings.showWeather} saver_clock=${AerialSettings.screensaverClock}")
-        appendLine("```")
-
-        appendLine()
-        appendLine("**Update check**")
-        appendLine("```")
-        appendLine(Updates.diagnostics())
         appendLine("```")
 
         appendLine()

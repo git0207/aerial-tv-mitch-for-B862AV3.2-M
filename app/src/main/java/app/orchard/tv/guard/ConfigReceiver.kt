@@ -10,7 +10,6 @@ import app.orchard.tv.system.DeviceProfile
 import app.orchard.tv.system.DiagLog
 import app.orchard.tv.system.HisenseSources
 import app.orchard.tv.system.SystemProbe
-import app.orchard.tv.update.Updates
 import app.orchard.tv.ui.components.DiagLayers
 import app.orchard.tv.ui.components.UhdCanvas
 import app.orchard.tv.wallpaper.AerialQuality
@@ -30,11 +29,6 @@ import kotlinx.coroutines.launch
  *                                   (Home's layout, as in Personalize; for screenshots of each)
  *   ... --ei preview_apps 3         (Home shows only its first 3 tiles until Aerial restarts, or 0;
  *                                   nothing is saved, for trying a nearly empty Home)
- *   ... --ez check_update true      (look for a new version now, not within three hours)
- *   ... --ez update_test true       ("Download and Install" takes files/update-test.apk instead,
- *                                   until Aerial restarts; for trying an update before a release)
- *   ... --ez update_test_self true  (the same with the APK Aerial runs from: a reinstall, for TVs whose
- *                                   shell cannot write Android/data, as TCL MT5879's)
  * The manifest requires the sender to hold WRITE_SECURE_SETTINGS, which the ADB shell has and
  * ordinary apps cannot get, so no other app on the TV can flip these.
  */
@@ -122,18 +116,8 @@ class ConfigReceiver : BroadcastReceiver() {
         if (intent.hasExtra("uhd_canvas")) {
             UhdCanvas.choose(context, intent.extras?.get("uhd_canvas") as? Boolean)
         }
-        if (intent.hasExtra("update_test")) {
-            Updates.testApk = if (intent.getBooleanExtra("update_test", false)) {
-                java.io.File(context.getExternalFilesDir(null) ?: context.filesDir, "update-test.apk")
-            } else null
-        }
-        if (intent.getBooleanExtra("update_test_self", false)) Updates.testApk = java.io.File(context.applicationInfo.sourceDir)
         // ... --ez self_compile true   (reinstall the running APK with its dex metadata now, SelfCompile)
         if (intent.getBooleanExtra("self_compile", false)) app.orchard.tv.update.SelfCompile.runNow(context)
-        if (intent.getBooleanExtra("check_update", false)) {
-            Updates.init(context)
-            Updates.checkIfStale(force = true)
-        }
         if (intent.hasExtra("keep_adb")) GuardSetup.setKeepAdb(context, intent.getBooleanExtra("keep_adb", false))
         // ... --ei adb_probe_port <port>   (verify the keep_adb toggle without closing a working
         //                                 link, until Aerial restarts; issue #454)

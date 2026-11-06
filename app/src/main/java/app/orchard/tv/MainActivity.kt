@@ -83,7 +83,6 @@ import app.orchard.tv.system.HisenseSources
 import app.orchard.tv.system.LaunchFallback
 import app.orchard.tv.system.settingsLaunchIntent
 import app.orchard.tv.update.SelfCompile
-import app.orchard.tv.update.Updates
 import app.orchard.tv.weather.Weather
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.delay
@@ -118,7 +117,6 @@ class MainActivity : ComponentActivity() {
             vm.refreshNetwork()
             Wallpapers.refreshDailyIfStale(networkCameUp = true)
             Weather.refreshIfStale(networkCameUp = true)
-            Updates.checkIfStale(networkCameUp = true)
         }
         override fun onLost(network: Network) = runOnUiThread { vm.refreshNetwork() }
         override fun onCapabilitiesChanged(network: Network, caps: NetworkCapabilities) = runOnUiThread { vm.refreshNetwork() }
@@ -218,7 +216,6 @@ class MainActivity : ComponentActivity() {
         val uhd = UhdCanvas.scale(this)
         Wallpapers.init(this)
         Weather.init(this)
-        Updates.init(this)
         lifecycleScope.launch(Dispatchers.IO) { SelfCompile.init(this@MainActivity) }
         CustomIcons.init(this)
         IconLibrary.init(this)
@@ -821,7 +818,6 @@ class MainActivity : ComponentActivity() {
         Wallpapers.refreshDailyIfStale()
         Wallpapers.rotateIfDue()
         Weather.refreshIfStale()
-        Updates.checkIfStale()
     }
 
     override fun onResume() {
@@ -843,7 +839,6 @@ class MainActivity : ComponentActivity() {
         restartIdleTimer()
         GuardSetup.setHomeInFront(this, true)
         HomeGuardService.onAerialResumed()
-        Updates.onHomeResumed()
         vm.refreshSystem()
         if (!resumedInProcess) {
             resumedInProcess = true
@@ -872,7 +867,6 @@ class MainActivity : ComponentActivity() {
         super.onPause()
         if (locked) return
         vm.resumed = false
-        Updates.onHomePaused()
         DiagLog.i("onPause")
         GuardSetup.setHomeInFront(this, false)
         if (HomeGuardService.onAerialPaused()) {
