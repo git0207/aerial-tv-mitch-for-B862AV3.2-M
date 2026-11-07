@@ -80,6 +80,11 @@
              so TVs without it install as before (#656). -->
         <uses-library android:name="com.tcl.tv.display" android:required="false" />
 
+        <provider
+            android:name=".wallpaper.CurrentWallpaperProvider"
+            android:authorities="${applicationId}.wallpaper"
+            android:exported="true" />
+
         <!-- The HOME intent filter is added by the "standard" flavor (src/standard).
              Not in recent apps: where the firmware keeps Home for itself, Aerial's task is a standard
              one and showed as a card first in the list that switched to nothing (MiTV-MFTR0, #324). -->

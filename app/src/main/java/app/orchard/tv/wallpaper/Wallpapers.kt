@@ -99,6 +99,7 @@ object Wallpapers {
     private lateinit var app: Context
     private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Main)
     private val io = Mutex()
+    private val bakedWrites = Mutex()
     private val prefs by lazy { app.getSharedPreferences("wallpaper", Context.MODE_PRIVATE) }
     private val dailyDir by lazy { File(app.filesDir, "daily").apply { mkdirs() } }
     private val photoDir by lazy { File(app.filesDir, "photos").apply { mkdirs() } }
@@ -212,7 +213,7 @@ object Wallpapers {
         scope.launch { refreshDaily() }
         scope.launch(Dispatchers.IO) { clearStaleUploads() }
         // Installs from before 1.42 have a baked picture but no copy yet.
-        scope.launch(Dispatchers.IO) { keepForLockedBoot() }
+        scope.launch(Dispatchers.IO) { bakedWrites.withLock { keepForLockedBoot() } }
     }
 
     /**
@@ -328,12 +329,13 @@ object Wallpapers {
     private fun rebuildBackdrop() {
         backdropJob?.cancel()
         val id = selectedId
+        if (id == AUTO) {
+            backdrop = null
+            frosted = null
+            WallpaperSnapshots.current.hide(app)
+            return
+        }
         backdropJob = scope.launch {
-            if (id == AUTO) {
-                backdrop = null
-                frosted = null
-                return@launch
-            }
             rotatedOn = today()
             val wp = resolve(id) ?: resolve(DEFAULT_FALLBACK)
             val key = wp?.let(::bakedKey)
@@ -350,6 +352,7 @@ object Wallpapers {
             backdrop = bmp?.asImageBitmap()
             frosted = frost?.asImageBitmap()
             if (key != null && bmp != null && frost != null) saveBaked(key, bmp, frost)
+            else WallpaperSnapshots.current.hide(app)
         }
     }
 
@@ -396,15 +399,14 @@ object Wallpapers {
 
     private suspend fun saveBaked(key: String, home: Bitmap, frost: Bitmap) {
         bakedKey = key
+        val snapshots = WallpaperSnapshots.current
+        val generation = snapshots.nextGeneration()
         withContext(Dispatchers.IO) {
-            runCatching {
-                // The key last, so a write cut short is never taken for a good one.
-                File(bakedDir, "key").delete()
-                File(bakedDir, "home.jpg").outputStream().use { home.compress(Bitmap.CompressFormat.JPEG, 95, it) }
-                File(bakedDir, "frost.png").outputStream().use { frost.compress(Bitmap.CompressFormat.PNG, 100, it) }
-                File(bakedDir, "key").writeText(key)
-            }.onFailure { Log.w(TAG, "could not keep the baked backdrop", it) }
-            keepForLockedBoot()
+            bakedWrites.withLock {
+                runCatching {
+                    if (snapshots.save(app, bakedDir, generation, key, home, frost)) keepForLockedBoot()
+                }.onFailure { Log.w(TAG, "could not keep the baked backdrop", it) }
+            }
         }
     }
 
@@ -457,6 +459,7 @@ object Wallpapers {
             // Not shaded, as the film is not (HomeBackground).
             Images.frost(frame).let { frost -> frame to frost }
         }
+        if (selectedId != id) return
         // The frame is both the film's own card and the card that plays them all in turn.
         synchronized(thumbs) { thumbs.remove(id); if (isVideo(id)) { thumbs.remove(VIDEOS); thumbs.remove(VIDEO_PREFIX + film) } }
         backdrop = bmp.asImageBitmap()
