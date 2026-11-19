@@ -54,6 +54,8 @@ import app.orchard.tv.apps.AppNames
 import app.orchard.tv.apps.SourceLooks
 import app.orchard.tv.apps.StandIn
 import app.orchard.tv.apps.TileArtFactory
+import app.orchard.tv.guard.BootCover
+import app.orchard.tv.guard.BootReceiver
 import app.orchard.tv.guard.GuardSetup
 import app.orchard.tv.guard.HomeGuardService
 import app.orchard.tv.ui.home.HomeScreen
@@ -331,6 +333,7 @@ class MainActivity : ComponentActivity() {
     }
 
     override fun onDestroy() {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) BootCover.forgetHome(window)
         if (locked) runCatching { unregisterReceiver(unlocked) }
         runCatching { unregisterReceiver(screenOnReceiver) }
         super.onDestroy()
@@ -355,6 +358,7 @@ class MainActivity : ComponentActivity() {
 
     /** Once per boot (Settings.Global.BOOT_COUNT, Android 7+), within a few minutes of it. */
     private fun firstStartSinceBoot(): Boolean {
+        if (BootReceiver.deferBootTarget) return false
         if (SystemClock.elapsedRealtime() > 3 * 60 * 1000L) {
             // In the diagnostics: an app to start on that never opened at power-on (MiTV4-ANSM0,
             // Android 6.0.1, issue #1009) may be Home created later than this.
@@ -377,9 +381,13 @@ class MainActivity : ComponentActivity() {
      */
     /** [again]: the target was opened and then covered at once (Home Guard's EXTRA_REOPEN_BOOT). */
     private fun openBootSource(reason: String, again: Boolean = false) {
+        if (BootReceiver.deferBootTarget) return
         val id = AerialSettings.bootSource
         val pkg = AerialSettings.bootApp
         if (id == null && pkg == null) return
+        if (BootCover.deferTarget {
+                if (!isFinishing && !isDestroyed && hasWindowFocus()) openBootSource(reason, again)
+            }) return
         if (!again && SystemClock.elapsedRealtime() - bootSourceOpenedAt < 15_000) return
         if (!again && !BootOpen.due(this)) {
             DiagLog.i("$reason: already opened ${id ?: pkg} since the TV came on")
@@ -490,6 +498,9 @@ class MainActivity : ComponentActivity() {
 
     override fun onWindowFocusChanged(hasFocus: Boolean) {
         super.onWindowFocusChanged(hasFocus)
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            if (hasFocus) BootCover.onHomeFocused(window) else BootCover.forgetHome(window)
+        }
         DiagLog.i("window focus $hasFocus")
         if (!hasFocus) SystemScreensaver.noteHomeHidden()
         // A window of the TV's over Aerial's screensaver, still resumed beneath it: a key of the
@@ -753,6 +764,7 @@ class MainActivity : ComponentActivity() {
             idleHandler.post { startScreensaver(asked = true) }
             return
         }
+        if (hasWindowFocus() && Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) BootCover.onHomeFocused(window)
         if (intent.hasCategory(Intent.CATEGORY_HOME) || intent.action == Intent.ACTION_MAIN) {
             // Since 1.11 Home Guard answers Home from an app by bringing Aerial back with this same
             // intent, so the intent alone cannot tell Home-on-Home from coming back from an app.
