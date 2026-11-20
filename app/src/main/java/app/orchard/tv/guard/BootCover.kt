@@ -7,23 +7,30 @@ import android.content.IntentFilter
 import android.graphics.BitmapFactory
 import android.graphics.Color
 import android.graphics.PixelFormat
+import android.graphics.drawable.GradientDrawable
 import android.os.Build
 import android.os.Handler
 import android.os.Looper
 import android.provider.Settings
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.Window
 import android.view.WindowManager
+import android.widget.FrameLayout
 import android.widget.ImageView
+import android.widget.TextView
 import androidx.annotation.RequiresApi
 import androidx.core.content.getSystemService
+import app.orchard.tv.R
 import app.orchard.tv.system.DiagLog
 import app.orchard.tv.wallpaper.Wallpapers
+import kotlin.math.roundToInt
 
 /** Masks the firmware's launcher while it starts underneath Aerial. State lives on the main thread. */
 internal object BootCover {
     private const val MAX_VISIBLE_MS = 20_000L
     private val main = Handler(Looper.getMainLooper())
-    private var view: ImageView? = null
+    private var view: FrameLayout? = null
     private var manager: WindowManager? = null
     private var screenOffContext: Context? = null
     private var pendingTarget: (() -> Unit)? = null
@@ -50,10 +57,14 @@ internal object BootCover {
         main.post {
             if (view != null) return@post
             val windows = app.getSystemService<WindowManager>() ?: return@post
-            val cover = ImageView(app).apply {
+            val backdrop = ImageView(app).apply {
                 setBackgroundColor(Color.rgb(18, 18, 20))
                 scaleType = ImageView.ScaleType.CENTER_CROP
                 setImageBitmap(wallpaper)
+            }
+            val cover = FrameLayout(app).apply {
+                addView(backdrop, FrameLayout.LayoutParams(-1, -1))
+                addView(liveTvHint(app), FrameLayout.LayoutParams(-2, -2, Gravity.CENTER))
             }
             val params = WindowManager.LayoutParams(
                 WindowManager.LayoutParams.MATCH_PARENT,
@@ -78,6 +89,29 @@ internal object BootCover {
                 hide("attachment failed")
                 DiagLog.e("boot cover: could not show", it)
             }
+        }
+    }
+
+    private fun liveTvHint(context: Context): TextView {
+        // Match the Zee live TV pause card's dimensions on its 1280x720 design canvas.
+        val metrics = context.resources.displayMetrics
+        val scale = minOf(metrics.widthPixels / 1280f, metrics.heightPixels / 720f)
+        val horizontal = (36 * scale).roundToInt()
+        val vertical = (28 * scale).roundToInt()
+        return TextView(context).apply {
+            setText(R.string.boot_cover_live_tv_hint)
+            setTextColor(0x99FFFFFF.toInt())
+            setTextSize(TypedValue.COMPLEX_UNIT_PX, (32 * scale).roundToInt().toFloat())
+            gravity = Gravity.CENTER
+            maxLines = 2
+            setPadding(horizontal, vertical, horizontal, vertical)
+            setShadowLayer((3 * scale).roundToInt().toFloat(), 0f, scale.roundToInt().toFloat(), 0x66000000)
+            background = GradientDrawable().apply {
+                setColor(0x26000000)
+                cornerRadius = (12 * scale).roundToInt().toFloat()
+                setStroke(scale.roundToInt().coerceAtLeast(1), 0x26FFFFFF)
+            }
+            isFocusable = false
         }
     }
 

@@ -7,6 +7,9 @@ import android.content.Intent
 import android.os.Looper
 import android.os.PowerManager
 import android.os.UserManager
+import android.view.Gravity
+import android.widget.FrameLayout
+import android.widget.TextView
 import app.orchard.tv.MainActivity
 import app.orchard.tv.system.DiagLog
 import org.junit.Assert.assertEquals
@@ -49,11 +52,17 @@ class BootReceiverTest {
     }
 
     @Test
+    @Config(qualifiers = "zh-rCN")
     fun keepsTheCoverThroughTheBootHandoffAndReleasesOnTimeout() {
         ShadowSettings.setCanDrawOverlays(true)
         val main = shadowOf(Looper.getMainLooper())
         receiver.onBoot(app, Intent.ACTION_LOCKED_BOOT_COMPLETED)
         main.idle()
+        val cover = ReflectionHelpers.getStaticField<FrameLayout>(BootCover::class.java, "view")
+        val hint = cover.getChildAt(1) as TextView
+        assertEquals("正在启动直播，等待约30秒", hint.text.toString())
+        assertEquals(Gravity.CENTER, (hint.layoutParams as FrameLayout.LayoutParams).gravity)
+        assertFalse(hint.isFocusable)
         receiver.onBoot(app, Intent.ACTION_BOOT_COMPLETED)
         var launches = 0
         val targetDeferred = BootCover.deferTarget { launches++ }

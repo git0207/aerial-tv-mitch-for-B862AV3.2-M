@@ -159,6 +159,7 @@
     <string name="cc_inputs_pin">Басты экранда көрсету (кез келген саны)</string>
     <string name="cc_inputs_boot">Теледидар қосылғанда (біреу)</string>
     <string name="cc_inputs_boot_none">Ештеңе, Aerial-де қалу</string>
+    <string name="boot_cover_live_tv_hint">Тікелей эфир іске қосылуда. Шамамен 30 секунд күтіңіз.</string>
     <string name="cc_inputs_boot_hint">Теледидар қосылғанда немесе күту режимінен шыққанда осы көзге ауысу. «Басты бет» бәрібір Aerial-ге қайтарады.</string>
     <string name="cc_inputs_pin_hint">Бекітілген көздер басты экранның басында тақтайшалар болып пайда болады; бірден ауысу үшін біреуін таңдаңыз. Жылжыту немесе алып тастау үшін тақтайшаны ұзақ басыңыз.</string>
     <string name="menu_unpin_source">Басты экраннан алып тастау</string>
