@@ -95,15 +95,10 @@ import kotlin.random.Random
  * If the films cannot be reached, Aerial falls back to Photos. Left and right step to the previous
  * or next film or photo, as on Apple TV; see [ScreensaverSkips].
  *
- * Until one is chosen the kind follows the wallpaper (Wallpapers.screensaver): aerial films with the
- * aerial wallpaper, photos with a picture, starting from that picture.
- *
- * With [carry], Home's own wallpaper carries on as the screensaver: the aerial wallpaper's film
- * already moving behind Home, or its picture beginning to draw in there, before the photos move on
- * from it. Home fades away around it (HomeScreen, whose clock becomes the screensaver's).
+ * With [carry], the photo screensaver begins from the picture already on Home.
  */
 @Composable
-fun Screensaver(visible: Boolean, apps: List<AppEntry>, now: LocalDateTime, skips: ScreensaverSkips, carry: SaverCarry? = null) {
+fun Screensaver(visible: Boolean, apps: List<AppEntry>, now: LocalDateTime, skips: ScreensaverSkips, carry: StillSaverCarry? = null) {
     AnimatedVisibility(
         visible = visible,
         enter = fadeIn(tween(1200, easing = Motion.EaseOut)),
@@ -111,14 +106,12 @@ fun Screensaver(visible: Boolean, apps: List<AppEntry>, now: LocalDateTime, skip
         exit = fadeOut(tween(220, easing = Motion.EaseOut)),
         modifier = Modifier.fillMaxSize(),
     ) {
-        // Follows Home while up (the film may fail and hand over to the screensaver's own), and
-        // stays as it was through the fade out, so leaving does not start a player.
+        // Keep the photo transition through the fade out.
         val held = remember { mutableStateOf(carry) }
         if (visible) held.value = carry
-        when (val carried = held.value) {
-            is SaverCarry.Film -> { FilmCarry(carried.film, now, skips.steps); return@AnimatedVisibility }
-            is SaverCarry.Still -> { PhotoSaver(now, skips.steps, carried.wallpaper, carried); return@AnimatedVisibility }
-            null -> Unit
+        held.value?.let {
+            PhotoSaver(now, skips.steps, it.wallpaper, it)
+            return@AnimatedVisibility
         }
         val context = LocalContext.current
         var aerialFailed by remember { mutableStateOf(false) }
@@ -126,11 +119,7 @@ fun Screensaver(visible: Boolean, apps: List<AppEntry>, now: LocalDateTime, skip
         Box(Modifier.fillMaxSize().background(Color.Black)) {
             when (Wallpapers.screensaver) {
                 ScreensaverMode.Aerial -> if (aerialFailed) PhotoSaver(now, skips.steps) else AerialSaver(
-                    now, skips.steps, onUnavailable = { aerialFailed = true }, startAt = remember {
-                        // A paused wallpaper film still holds the decoder (one 4K decoder, MiTV-MFTR0).
-                        LiveFilm.onHome?.letDecoderGo()
-                        AerialStart.start(context)
-                    },
+                    now, skips.steps, onUnavailable = { aerialFailed = true }, startAt = remember { AerialStart.start(context) },
                 )
                 ScreensaverMode.Photos -> PhotoSaver(now, skips.steps, remember { Wallpapers.screensaverPicture() })
                 ScreensaverMode.Clock, ScreensaverMode.System -> ClockSaver(apps, now)
@@ -161,16 +150,10 @@ class ScreensaverSkips {
     }
 }
 
-/** What of Home's wallpaper carries on as the screensaver. */
-sealed interface SaverCarry {
-    /** The aerial wallpaper's film, moving on behind Home. */
-    class Film(val film: LiveFilm) : SaverCarry
-
-    /** The wallpaper's picture, drawing in behind Home (HomeBackground) as the photos' first. */
-    class Still(val wallpaper: app.orchard.tv.wallpaper.Wallpaper) : SaverCarry {
-        /** The photos have moved on over it: Home's picture can stop. */
-        var covered by mutableStateOf(false)
-    }
+/** The wallpaper's picture, drawing in behind Home as the photo screensaver's first. */
+class StillSaverCarry(val wallpaper: app.orchard.tv.wallpaper.Wallpaper) {
+    /** The photos have moved on over it: Home's picture can stop. */
+    var covered by mutableStateOf(false)
 }
 
 /**
@@ -211,65 +194,26 @@ fun androidx.compose.ui.graphics.drawscope.DrawScope.drawDrawingIn(image: ImageB
     }
 }
 
-/** Where a screensaver of aerials starts when it cannot carry Home's player on (AerialDream). */
+/** The film and moment the aerial screensaver starts from. */
 object AerialStart {
-    /**
-     * Where a screensaver of aerials starts: the film and moment the aerial wallpaper or the last
-     * screensaver left (one spot for both, whatever the wallpaper, so the two are always the same
-     * film), or the day's new film from its start (AerialSet.takeDaily).
-     */
     fun start(context: android.content.Context): Pair<String, Long>? {
         AerialSet.takeDaily(context)?.let { film ->
-            DiagLog.i("today's new film ${film.id}")
+            DiagLog.i("today's new film " + film.id)
             Wallpapers.leaveLiveFilm(film.id, 0L)
             return film.id to 0L
         }
-        return LiveFilm.onHome?.spot() ?: Wallpapers.liveSpot()
+        return Wallpapers.liveSpot()
     }
 
-    /**
-     * A few seconds before Home's screensaver: where it is to start in another format than the
-     * wallpaper's (Dolby Vision chosen), that start is fetched to disk, at the moment the wallpaper's
-     * film will be at [leadMs] on (AerialStream.prepareStart). The screensaver then starts there.
-     */
-    suspend fun prepareAhead(context: android.content.Context, leadMs: Long) {
-        if (Wallpapers.screensaver != ScreensaverMode.Aerial || AerialFormats.screensaverCarriesWallpaper(context)) return
-        val quality = AerialFormats.forScreensaver(context, overWallpaper = true).let { q ->
-            aerialQualityCap?.takeIf { it.ordinal < q.ordinal } ?: q
-        }
-        val live = LiveFilm.onHome
-        // A new day starts the screensaver on its new film, from the start (start()).
+    /** Prefetch the Dolby Vision screensaver's start while Home is still up. */
+    suspend fun prepareAhead(context: android.content.Context) {
+        if (Wallpapers.screensaver != ScreensaverMode.Aerial || !AerialFormats.usesExplicitDolbyVision(context)) return
+        val quality = aerialQualityCap ?: AerialQuality.DolbyVision
         val (id, at) = if (AerialSet.due(context)) AerialSet.nextNew(context).id to 0L
-            else live?.spot()?.let { (id, at) -> id to at + if (live.moving) leadMs else 0L } ?: Wallpapers.liveSpot() ?: return
+            else Wallpapers.liveSpot() ?: return
         val film = Aerials.all(context).firstOrNull { it.id == id } ?: return
         AerialStream.prepareStart(context, film, quality, aerialsOverHttp, at)
     }
-
-    /** A screensaver of aerials of its own is up (Home's or the dream): it moves the wallpaper's spot on. */
-    @Volatile
-    var running = false
-}
-
-/**
- * The aerial wallpaper's film carried on as the screensaver, one shot from Home: the same player,
- * in the wallpaper's own format, through to the films after it. Not with Dolby Vision chosen by hand
- * (AerialFormats.screensaverCarriesWallpaper): these TVs have one 4K decoder, and the switch showed
- * black for 1–3.5 s (Xiaomi MiTV-MFTR0), which only an owner who asked for Dolby Vision should get.
- */
-@Composable
-private fun FilmCarry(film: LiveFilm, now: LocalDateTime, steps: SharedFlow<Int>) {
-    var caption by remember { mutableStateOf<String?>(null) }
-    LaunchedEffect(film.film) {
-        while (true) {
-            caption = film.film?.captionAt((film.positionMs / 1000).toInt())
-            delay(1000)
-        }
-    }
-    val context = LocalContext.current
-    LaunchedEffect(steps) { steps.collect { film.skip(context, it) } }
-    // A new day's film comes in as the screensaver starts, over the wallpaper's film (AerialSet).
-    LaunchedEffect(Unit) { if (AerialSet.due(context)) film.skip(context, 1) }
-    Labels(caption, now, showTime = false, shade = false)
 }
 
 /** Where the labels' shade ends at the top and starts at the bottom, of the screen's height. */
@@ -395,14 +339,7 @@ private var aerialsOverHttp by mutableStateOf(Build.VERSION.SDK_INT < Build.VERS
  */
 private var aerialQualityCap: AerialQuality? = null
 
-/**
- * [startAt]: the aerial wallpaper's film and moment to begin with, played in the wallpaper's format
- * so it goes on as the wallpaper looked, or in Dolby Vision where chosen (AerialFormats.forScreensaver).
- * Over the aerial wallpaper, the film and moment it is at are the wallpaper's to go on from
- * (Wallpapers.leaveLiveFilm): wallpaper and screensaver are one film in either format (owner,
- * 2026-10-29; until then the Dolby Vision screensaver began on any film whose start was on disk,
- * and Home came back on yet another).
- */
+/** [startAt] is the saved aerial screensaver film and position. */
 @Composable
 private fun AerialSaver(
     now: LocalDateTime,
@@ -412,16 +349,9 @@ private fun AerialSaver(
 ) {
     val context = LocalContext.current
     var quality by remember {
-        val wanted = AerialFormats.forScreensaver(context, overWallpaper = startAt != null)
+        val wanted = AerialFormats.forScreensaver(context, resuming = startAt != null)
         mutableStateOf(aerialQualityCap?.takeIf { it.ordinal < wanted.ordinal } ?: wanted)
     }
-    // Where it is goes to the one spot the aerial wallpaper and the next screensaver go on from
-    // (Wallpapers.leaveLiveFilm), whatever the wallpaper is now: switched to the aerial one later,
-    // it begins on this film.
-    val overLive = remember { Wallpapers.selectedId == Wallpapers.LIVE }
-    fun leave(film: String, atMs: Long, persist: Boolean) = Wallpapers.leaveLiveFilm(film, atMs, persist)
-    // The moment fetched ahead (AerialStart.prepareAhead), where it is the wallpaper's within a few
-    // seconds: it plays from disk.
     @Suppress("NAME_SHADOWING")
     val startAt = remember {
         startAt?.let { (id, at) ->
@@ -430,7 +360,6 @@ private fun AerialSaver(
                 ?: (id to at)
         }
     }
-    // The films kept (AerialSet), from the wallpaper's: the wallpaper plays them in the same order.
     val films = remember { mutableStateListOf<Aerial>().apply { addAll(AerialSet.playlist(context, startAt?.first)) } }
     val firstAtMs = remember { startAt?.takeIf { (id, _) -> films.first().id == id }?.second ?: 0L }
     // Its decoder starts on the film's own surface, not ExoPlayer's placeholder (AerialStream.player).
@@ -539,10 +468,8 @@ private fun AerialSaver(
         }
         player.addListener(listener)
         load(0, firstAtMs)
-        AerialStart.running = true
         onDispose {
-            AerialStart.running = false
-            if (shownAny) player.currentMediaItem?.mediaId?.let { leave(it, player.currentPosition, persist = true) }
+            if (shownAny) player.currentMediaItem?.mediaId?.let { Wallpapers.leaveLiveFilm(it, player.currentPosition) }
             handler.removeCallbacksAndMessages(null)
             player.removeListener(listener)
             player.release()
@@ -558,7 +485,7 @@ private fun AerialSaver(
             caption = film.captionAt((player.currentPosition / 1000).toInt())
             // Every second in memory, so Home comes back on this moment; to prefs now and then, for
             // a process that ends under the screensaver.
-            leave(film.id, player.currentPosition, persist = ticks++ % 30 == 0)
+            Wallpapers.leaveLiveFilm(film.id, player.currentPosition, persist = ticks++ % 30 == 0)
         }
     }
     LaunchedEffect(steps) {
@@ -582,14 +509,6 @@ private fun AerialSaver(
     LaunchedEffect(failures) {
         if (failures >= 3) onUnavailable()
     }
-    // While a film plays, get the next screensaver's first film ready on disk.
-    // And the index of this film in the wallpaper's format, where that is another: Home goes on
-    // from this moment with one request to Apple.
-    LaunchedEffect(playing, index) {
-        val home = AerialFormats.forWallpaper(context)
-        if (playing && overLive && home != quality) AerialStream.prepareSeek(context, film, home, aerialsOverHttp)
-    }
-
     // A picture wallpaper is not carried into the aerial screensaver: the two cannot blend (another
     // plane, Dolby Vision or HDR on the film), and holding the picture until the film moved kept
     // Home's wallpaper on screen for seconds (Xiaomi MiTV-MFTR0, 1.61 to 1.63).
@@ -632,7 +551,7 @@ private fun PhotoSaver(
     /** The wallpaper's picture, shown first. */
     first: app.orchard.tv.wallpaper.Wallpaper? = null,
     /** Home already shows [first], drawing in: the photos take over from the second. */
-    carried: SaverCarry.Still? = null,
+    carried: StillSaverCarry? = null,
 ) {
     val reduced = LocalReducedMotion.current
     val pool = remember(Wallpapers.items) {

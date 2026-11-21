@@ -114,13 +114,6 @@ object AerialSettings {
     /** The date and weather over a big clock above the top row, instead of one small line in the corner. */
     var largeClock by mutableStateOf(false); private set
 
-    /**
-     * The moving wallpaper (aerial films, the owner's own videos) plays on the top row whatever the
-     * keys do, under a little shade, rather than only once Home has sat still (issues #360, #456).
-     * The grid below and panels still stop it: they cover it.
-     */
-    var wallpaperAlwaysMoves by mutableStateOf(false); private set
-
     /** The weather beside the clock; off for those who want the time alone (issue #472). */
     var showWeather by mutableStateOf(true); private set
 
@@ -197,7 +190,6 @@ object AerialSettings {
         largeClock = prefs.getBoolean("large_clock", false)
         homePlate = prefs.getBoolean("home_plate", true)
         showAllNames = prefs.getBoolean("show_all_names", false)
-        wallpaperAlwaysMoves = prefs.getBoolean("wallpaper_always_moves", false)
         showWeather = prefs.getBoolean("show_weather", true)
         screensaverClock = prefs.getBoolean("screensaver_clock", true)
         // Before 1.28 this was on or off; on meant whichever sounds Aerial played.
@@ -291,11 +283,6 @@ object AerialSettings {
     fun chooseShowAllNames(on: Boolean) {
         showAllNames = on
         app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putBoolean("show_all_names", on) }
-    }
-
-    fun chooseWallpaperAlwaysMoves(on: Boolean) {
-        wallpaperAlwaysMoves = on
-        app.getSharedPreferences(PREFS, Context.MODE_PRIVATE).edit { putBoolean("wallpaper_always_moves", on) }
     }
 
     fun chooseShowWeather(on: Boolean) {

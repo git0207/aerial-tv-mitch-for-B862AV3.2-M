@@ -34,7 +34,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.text.BasicText
 import androidx.compose.runtime.Composable
-import androidx.compose.runtime.DisposableEffect
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.derivedStateOf
 import androidx.compose.runtime.getValue
@@ -79,8 +78,6 @@ import app.orchard.tv.apps.AppEntry
 import app.orchard.tv.ui.control.ControlCenter
 import app.orchard.tv.ui.wallpaper.SheetCovers
 import app.orchard.tv.ui.wallpaper.WallpaperSheet
-import app.orchard.tv.wallpaper.AerialFormats
-import app.orchard.tv.wallpaper.ScreensaverMode
 import app.orchard.tv.wallpaper.Wallpapers
 import app.orchard.tv.ui.components.liquidGlass
 import app.orchard.tv.ui.theme.LocalReducedMotion
@@ -98,7 +95,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.coroutineScope
 import kotlinx.coroutines.withContext
 import kotlinx.coroutines.flow.first
-import kotlinx.coroutines.withTimeoutOrNull
 import kotlinx.coroutines.launch
 import kotlin.math.roundToInt
 
@@ -262,9 +258,6 @@ private class GridMetrics(screenW: Dp, screenH: Dp, val columns: Int, oneRow: Bo
     }
 }
 
-/** How long the screensaver waits for the wallpaper's film to move before playing its own. */
-private const val FILM_SAVER_WAIT_MS = 10_000L
-
 /** How long the large clock's time takes back from the screensaver's corner (ShelfClock waits for it). */
 internal const val CLOCK_BACK_MS = 1000
 
@@ -311,38 +304,8 @@ fun HomeScreen(
     val focusedRow = if (pillFocused || focusedIndex < 0) 0 else focusedIndex / columns
     val gridEnabled = overlay == Overlay.None
 
-    // The aerial wallpaper's film, and how far it shows through.
-    val filmCover = remember { Animatable(0f) }
-    val liveFilm = remember { LiveFilm() }
-    DisposableEffect(liveFilm) {
-        LiveFilm.onHome = liveFilm
-        onDispose { if (LiveFilm.onHome === liveFilm) LiveFilm.onHome = null }
-    }
-    // A screensaver of aerials over the aerial wallpaper carries the wallpaper's film on, one shot
-    // from Home to screensaver: the apps fade, the clock moves to the corner. Whether the film is
-    // moving already or still on its frame (Back on the top row), as long as Home shows it: on the
-    // top row with nothing over it. A film that does not move within FILM_SAVER_WAIT_MS hands over
-    // to the screensaver's own films.
-    var filmFailed by remember(vm.screensaverVisible) { mutableStateOf(false) }
-    val filmSaverChosen = remember(vm.screensaverVisible) {
-        vm.screensaverVisible && Wallpapers.selectedId == Wallpapers.LIVE && Wallpapers.screensaver == ScreensaverMode.Aerial &&
-            AerialFormats.screensaverCarriesWallpaper(appContext) &&
-            (filmCover.value > 0.5f || focusedRow == 0 && overlay == Overlay.None && moving == null)
-    }
-    val filmSaver = filmSaverChosen && !filmFailed
-    LaunchedEffect(filmSaverChosen) {
-        if (!filmSaverChosen) return@LaunchedEffect
-        val moved = withTimeoutOrNull(FILM_SAVER_WAIT_MS) { snapshotFlow { filmCover.value > 0.99f }.first { it } }
-        if (moved == null) {
-            DiagLog.i("wallpaper film did not move for the screensaver; its own films instead")
-            filmFailed = true
-        }
-    }
-    // The plate over a stopped film, once its glass is ready; out as the film moves again.
-    val filmStopped by animateFloatAsState(
-        if (liveFilm.stopped) 1f else 0f,
-        tween(if (liveFilm.stopped) 250 else 900, easing = Motion.EaseOut), label = "film-stopped",
-    )
+    // How far a live TV input shows through.
+    val sourceCover = remember { Animatable(0f) }
     // A photo screensaver over a picture wallpaper carries the picture on the same way: its shading
     // lifts and it slowly draws in from just as Home shows it (HomeBackground), and the photos move
     // on from it.
@@ -351,7 +314,7 @@ fun HomeScreen(
             Wallpapers.screensaverPicture()
         } else null
     }
-    val stillCarry = remember(stillSaver) { stillSaver?.let { SaverCarry.Still(it) } }
+    val stillCarry = remember(stillSaver) { stillSaver?.let { StillSaverCarry(it) } }
     var saverImage by remember { mutableStateOf<ImageBitmap?>(null) }
     val saverReveal = remember { Animatable(0f) }
     val saverPush = remember { Animatable(0f) }
@@ -379,7 +342,7 @@ fun HomeScreen(
             saverImage = null
         }
     }
-    val carrying = filmSaver || stillSaver != null
+    val carrying = stillSaver != null
     val toSaver = remember { Animatable(0f) }
     LaunchedEffect(carrying) {
         when {
@@ -593,45 +556,9 @@ fun HomeScreen(
             dragged = true
             scope.launch(start = CoroutineStart.UNDISPATCHED) { scroll.snapTo(scroll.value - delta) }
         }
-        // A moving wallpaper's film, under everything; it moves only on the shelf with nothing
-        // over it (in two rows the second row too, which is on screen over the same film, issue
-        // #810); the owner's videos there only once Home is still unless set to keep moving.
-        // Beside Home rather than in it: Home is not drawn (alpha 0) under a whole frost or once
-        // its picture stands in under Control Center, and a SurfaceView in a layer that is not
-        // drawn cuts no hole in the window, so the paused film showed as the window's black
-        // (Xiaomi MiTV-MFTR0, the aerial wallpaper under Control Center).
-        val filmMoves = vm.filmFront && overlay == Overlay.None && !vm.screensaverVisible && !pastShelf &&
-            !inGrid && moving == null
         val sourceInput = Wallpapers.sourceInput
-        when {
-            Wallpapers.selectedId == Wallpapers.LIVE -> LiveWallpaper(
-                moving = filmMoves,
-                keep = vm.filmFront && (!vm.screensaverVisible || filmSaver),
-                cover = filmCover,
-                hold = filmSaver && vm.filmFront,
-                // Control Center, Personalize and an app's menu on Home leave Home sharp (dimmed,
-                // above the sheet, beside the menu): the paused film stays. Swapped for its picture
-                // there, the background jumped (another plane and processing; a key frame a second
-                // off where the exact frame did not decode, Xiaomi MiTV-MFTR0 and TCL MT5879); the
-                // menu flashed so as it opened (the owner, MFTR0). In a folder Home is frosted.
-                standIn = overlay == Overlay.None || overlay is Overlay.ControlCenter || overlay is Overlay.Wallpaper ||
-                    (overlay is Overlay.AppMenu && overlay.inFolder == null),
-                panel = overlay != Overlay.None,
-                otherFormatSaver = vm.screensaverVisible && !filmSaver && Wallpapers.screensaver == ScreensaverMode.Aerial &&
-                    !AerialFormats.screensaverCarriesWallpaper(appContext),
-                lastInputAt = { vm.lastInputAt },
-                live = liveFilm,
-            )
-            // Anew for each choice, so another of the owner's videos does not keep the last one's player.
-            Wallpapers.isVideo() -> key(Wallpapers.selectedId) {
-                VideoWallpaper(
-                    moving = filmMoves,
-                    keep = vm.filmFront && !vm.screensaverVisible,
-                    lastInputAt = vm.lastInputAt,
-                    cover = filmCover,
-                )
-            }
-            sourceInput != null -> SourceWallpaper(sourceInput, show = vm.resumed && !vm.screensaverVisible, cover = filmCover)
+        if (sourceInput != null) {
+            SourceWallpaper(sourceInput, show = vm.resumed && !vm.screensaverVisible, cover = sourceCover)
         }
         Box(
             Modifier
@@ -676,13 +603,7 @@ fun HomeScreen(
                 )
             }
             // Another wallpaper chosen: nothing shows through until the new one has a frame.
-            LaunchedEffect(Wallpapers.selectedId) { filmCover.snapTo(0f) }
-            // The aerial film's own glass for the grid: the one playing or stopped, else the one
-            // the picture was taken from.
-            val pictureClip = remember(Wallpapers.backdrop) { Wallpapers.livePictureSpot()?.first }
-            val clip = if (Wallpapers.selectedId == Wallpapers.LIVE) liveFilm.film?.id ?: pictureClip else null
-            LaunchedEffect(clip) { Wallpapers.showClipGlass(clip) }
-            val clipGlass = Wallpapers.clipGlass?.takeIf { it.first == clip }?.second
+            LaunchedEffect(Wallpapers.selectedId) { sourceCover.snapTo(0f) }
             HomeBackground(
                 // The chosen wallpaper; in "Follow App" mode, light from the focused app.
                 backdrop = Wallpapers.backdrop ?: ambientApp?.art?.backdrop,
@@ -690,21 +611,14 @@ fun HomeScreen(
                 plate = plate,
                 scroll = { scroll.value },
                 collapse = collapsePx,
-                cover = { filmCover.value },
-                // A film kept moving, or an input's picture, gets the shade a picture has, so the
-                // top row reads over it without the plate. In the grid both give way to the
-                // glass, as any wallpaper does (an input's picture cannot be blurred).
-                shadeMoving = Wallpapers.keepsMoving || sourceInput != null,
-                filmStopped = { filmStopped },
+                cover = { sourceCover.value },
+                shadeMoving = sourceInput != null,
                 toSaver = { toSaver.value },
-                filmGlass = (Wallpapers.filmFrost ?: Wallpapers.frosted).takeIf { Wallpapers.moves() && Wallpapers.backdrop != null },
                 saverImage = saverImage,
                 saverReveal = { saverReveal.value },
                 saverPush = { saverPush.value },
                 lift = { lift },
                 wallpaper = Wallpapers.selectedId,
-                glassAwaitsStop = Wallpapers.selectedId == Wallpapers.LIVE && clipGlass == null,
-                gridGlass = clipGlass,
             )
 
             // Before Android 7 there is no picture of Home under Control Center (issue #466), so the
@@ -1063,11 +977,6 @@ fun HomeScreen(
 
         NoticeBanner(vm.notice, Modifier.align(Alignment.TopCenter).padding(top = 24.dp))
 
-        Screensaver(visible = vm.screensaverVisible, apps = apps, now = now, skips = vm.screensaverSkips, carry = when {
-                filmSaver -> SaverCarry.Film(liveFilm)
-                stillCarry != null -> stillCarry
-                else -> null
-            },
-        )
+        Screensaver(visible = vm.screensaverVisible, apps = apps, now = now, skips = vm.screensaverSkips, carry = stillCarry)
     }
 }

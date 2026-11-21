@@ -60,16 +60,7 @@ import kotlin.math.roundToInt
  * rounded rect, which holds it.
  */
 fun Modifier.liquidGlass(corner: Dp, bottomCorners: Boolean = true): Modifier = composed {
-    // The glass a panel opened with stays while it is open, unless the wallpaper itself changes
-    // (chosen in Personalize). A moving film that stops as a panel opens gets its glass made again
-    // twice within the next second or so, from a frame near where it stopped and then from that
-    // very frame (LiveWallpaper): followed, the menu's and Control Center's glass changed twice
-    // just after they opened (the owner, Xiaomi MiTV-MFTR0). The next opening takes the newest.
-    // Over a moving wallpaper whose frames cannot be had (Wallpapers.filmGlassless) one solid
-    // colour: the frosted frame there is one from minutes before, and Control Center and
-    // Personalize showed its colours over the paused film, another shot (TCL MT5879, 2026-10-30).
-    // See-through instead would show the tiles under the panel.
-    val solid = Wallpapers.moves() && Wallpapers.filmGlassless
+    // Keep the glass a panel opened with until the selected wallpaper changes.
     val latest = Wallpapers.frosted.takeIf { Wallpapers.backdrop != null }
     val held = remember(Wallpapers.selectedId, latest == null) { latest }
     val (frost, under, swap) = rememberFrostSwap(held)
@@ -101,10 +92,7 @@ fun Modifier.liquidGlass(corner: Dp, bottomCorners: Boolean = true): Modifier = 
             var drawnRoot = IntSize.Zero
             var drawnT = -1f
             onDrawBehind {
-                if (solid) {
-                    drawImage(flat, dstSize = IntSize(w, h), colorFilter = ColorFilter.tint(FilmPanel))
-                    drawGlassEdge(size, radius, bottomCorners)
-                } else if (shader == null || brush == null || root == IntSize.Zero) {
+                if (shader == null || brush == null || root == IntSize.Zero) {
                     drawImage(flat, dstSize = IntSize(w, h), colorFilter = ColorFilter.tint(Palette.Glass))
                     drawGlassEdge(size, radius, bottomCorners)
                 } else if (AerialSettings.lite) {
@@ -239,14 +227,6 @@ private fun liteGlass(frost: ImageBitmap): Color = synchronized(liteColors) {
 }
 
 private val liteColors = java.util.WeakHashMap<ImageBitmap, Color>()
-
-/**
- * A panel over a moving wallpaper whose frames cannot be had: opaque, so the tiles under it do not
- * show, and as light as the frosted glass is elsewhere (PanelTint over a daytime picture comes to
- * about this grey). The old near-black (0x26262A) read as a dark slab, not glass (the owner, TCL
- * MT5879, 2026-11-01).
- */
-private val FilmPanel = Color(0xFF4A4B51)
 
 private val PanelTint = ColorFilter.colorMatrix(ColorMatrix(floatArrayOf(
     0.48f, 0f, 0f, 0f, 14f,

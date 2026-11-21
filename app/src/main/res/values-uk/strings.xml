@@ -77,14 +77,13 @@
     <string name="wx_snow">Сніг</string>
     <string name="wx_thunder">Гроза</string>
     <string name="wp_daily_latest">Завжди сьогоднішнє</string>
-    <string name="wp_live">Аерозйомка · грає на верхньому ряду головного екрана (у дворядному вигляді — на обох рядах)</string>
     <string name="wp_photos_rotate">Одне на день</string>
     <string name="wp_daily_note">Фото дня від Bing, щодня нове.</string>
     <string name="wp_photos_rotate_note">Щодня інше з ваших фото.</string>
     <string name="wp_photo_note">Ваше фото. Відскануйте код праворуч, щоб надіслати ще з телефона.</string>
     <string name="wp_auto_note">Світло береться з обкладинки вибраного застосунку.</string>
     <string name="wp_screensaver">Заставка</string>
-    <string name="ss_follow_hint">Ще не вибрано, тож відповідає шпалерам: аерозйомка зі шпалерами аерозйомки, фото з картинкою, починаючи з неї. Виберіть, щоб закріпити.</string>
+    <string name="ss_follow_hint">Поки заставку не вибрано, вона залежить від шпалер: показ фото починається з поточного зображення. Для шпалер застосунку й телевходів використовується аерозйомка.</string>
     <string name="ss_aerial">Аерозйомка</string>
     <string name="ss_photos">Фото</string>
     <string name="ss_clock">Годинник</string>
@@ -104,7 +103,7 @@
     <string name="ss_back_off">Нічого не робить</string>
     <string name="ss_back_choice_hint">Що робить «Назад» у верхньому ряду головного екрана. Вимкніть, якщо її натискають випадково; заставка все одно запуститься сама.</string>
     <string name="ss_quality">Якість аерозйомки</string>
-    <string name="ss_quality_hint">«Авто» відтворює найкраще, що може показати цей телевізор: 4K Dolby Vision, 4K або 1080p. Зі шпалерами аерозйомки заставка продовжує ролик у форматі шпалер, без блимання; якщо вибрано 4K Dolby Vision, вона перемикається на Dolby Vision, і екран може на мить згаснути. Для 4K Dolby Vision потрібно близько 25 Мбіт/с; виберіть 1080p, якщо ролики часто підвисають.</string>
+    <string name="ss_quality_hint">Автовибір враховує можливості телевізора. Для 4K Dolby Vision потрібно близько 25 Мбіт/с, а під час перемикання режиму екран може ненадовго згаснути. Якщо ролики часто пропускаються, виберіть 1080p.</string>
     <string name="ss_quality_auto">Авто</string>
     <string name="ss_quality_hd">1080p</string>
     <string name="ss_quality_uhd">4K</string>
@@ -216,14 +215,7 @@
     <string name="ss_videos_hint">Додайте MP4 або MOV зі сторінки на телефоні. Перегляд без мережі; якщо відео недоступні, показуються фото.</string>
     <string name="ss_system">Системна</string>
     <string name="ss_system_hint">Заставка самого телевізора, як задумав виробник (наприклад, картини Xiaomi). Aerial свою не показує.</string>
-    <string name="wp_videos_note">Ваші відео, надіслані з телефона: без звуку, одне за одним. Рухаються як аерозйомка і зупиняються на поточному кадрі.</string>
-    <string name="wp_videos_rotate">Мої відео по черзі</string>
-    <string name="wp_video_note">Ваше відео, надіслане з телефона: без звуку, по колу. Рухається як аерозйомка і зупиняється на поточному кадрі.</string>
     <string name="wp_source_note">Жива картинка цього входу за головним екраном, без звуку; звук є, якщо відкрити сам вхід. Біля застосунків нижче тло стає матовим. Поки картинки немає, видно темне тло.</string>
-    <string name="st_play">Відтворення</string>
-    <string name="st_play_still">У спокої</string>
-    <string name="st_play_always">Завжди</string>
-    <string name="st_play_hint">У спокої: через 10 секунд на верхньому ряду (у дворядному вигляді — на будь-якому з двох); будь-яка кнопка зупиняє. Завжди: кнопки не зупиняють, тло трохи затемнене; зупиняється, коли ви переходите до застосунків нижче.</string>
     <string name="ss_show_time">Час</string>
     <string name="ss_show_time_hint">Час на заставках з аерозйомкою і фото. Час і назва місця час від часу трохи зсуваються, щоб екран не вигорав.</string>
 </resources>

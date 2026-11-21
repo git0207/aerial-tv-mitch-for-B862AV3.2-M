@@ -60,7 +60,6 @@ import app.orchard.tv.guard.GuardSetup
 import app.orchard.tv.guard.HomeGuardService
 import app.orchard.tv.ui.home.HomeScreen
 import app.orchard.tv.ui.home.AerialStart
-import app.orchard.tv.ui.home.LiveFilm
 import app.orchard.tv.ui.home.asFocusedTile
 import app.orchard.tv.ui.theme.LocalReducedMotion
 import app.orchard.tv.ui.home.TileFaces
@@ -73,7 +72,6 @@ import app.orchard.tv.wallpaper.Wallpapers
 import app.orchard.tv.system.BootOpen
 import app.orchard.tv.system.DiagLog
 import app.orchard.tv.system.FrameStats
-import app.orchard.tv.wallpaper.AerialFormats
 import app.orchard.tv.wallpaper.ScreensaverMode
 import app.orchard.tv.system.SystemScreensaver
 import app.orchard.tv.system.Diagnostics
@@ -533,13 +531,7 @@ class MainActivity : ComponentActivity() {
 
     /** The Dolby Vision screensaver's start, fetched to disk while Home is still up (AerialStart.prepareAhead). */
     private val prepareScreensaver = Runnable {
-        if (vm.resumed && !vm.screensaverVisible) lifecycleScope.launch { AerialStart.prepareAhead(this@MainActivity, SAVER_AHEAD_MS) }
-    }
-
-    /** Home's bounce did not bring Aerial back in time: the film lets its decoder go as usual. */
-    private val endHomeBounce = Runnable {
-        if (vm.homeBounce) DiagLog.i("not back from Home's bounce; the film lets go")
-        vm.homeBounce = false
+        if (vm.resumed && !vm.screensaverVisible) lifecycleScope.launch { AerialStart.prepareAhead(this@MainActivity) }
     }
 
     /**
@@ -556,23 +548,13 @@ class MainActivity : ComponentActivity() {
             if (asked && !SystemScreensaver.startFirmware(this)) DiagLog.i("no system screensaver to start")
             return
         }
-        // Aerials over the aerial wallpaper: Home carries the wallpaper's film on, the same player in
-        // the same format, so there is no black between them; the dream would be a new player in a
-        // new window, and showed black even in 4K (TCL MT5879). Not with Dolby Vision chosen by hand,
-        // which the wallpaper does not play (AerialFormats.screensaverCarriesWallpaper).
-        val carry = Wallpapers.selectedId == Wallpapers.LIVE && Wallpapers.screensaver == ScreensaverMode.Aerial &&
-            AerialFormats.screensaverCarriesWallpaper(this)
-        if (!carry && !dreamFails(this) && SystemScreensaver.isAerials(this)) {
-            // The dream's film needs the decoder the wallpaper's holds: TCL MT5879 failed Dolby
-            // Vision beside it and the dream fell back to 4K HEVC.
-            LiveFilm.onHome?.letDecoderGo()
+        if (!dreamFails(this) && SystemScreensaver.isAerials(this)) {
             if (SystemScreensaver.startDream(this)) {
                 DiagLog.i("screensaver starts as the system's dream")
                 dreamAskedAt = SystemClock.uptimeMillis()
                 SystemScreensaver.noteDreamAsked()
                 return
             }
-            LiveFilm.onHome?.goOn()
         }
         DiagLog.i("screensaver starts (${Wallpapers.screensaver})")
         vm.screensaverVisible = true
@@ -601,7 +583,6 @@ class MainActivity : ComponentActivity() {
         SystemScreensaver.forgetDreamAsked()
         noteDreamFails(this)
         DiagLog.i("the system's dream did not show; Aerial's own screensaver instead")
-        LiveFilm.onHome?.goOn()
         startScreensaver(asked = false)
     }
     private var swallowKeyUp = -1
@@ -661,8 +642,7 @@ class MainActivity : ComponentActivity() {
     private fun idleBeforeScreensaver(): Long {
         val chosen = AerialSettings.screensaverMinutes * 60_000L
         // Where Aerial's dream is the TV's screensaver, the TV starts it on its own after
-        // screen_off_timeout (TCL MT5879: 2 minutes); Home starts its own first, so that the
-        // aerial wallpaper's film can carry on (startScreensaver).
+        // screen_off_timeout (TCL MT5879: 2 minutes). Give Home a chance to start it first.
         val firmware = firmwareScreensaverDelay() ?: dreamDelay()?.takeUnless { holdsOffTheDream() }
         return if (firmware != null && firmware > 0) minOf(chosen, maxOf(30_000L, firmware - 15_000L))
         else chosen
@@ -841,8 +821,6 @@ class MainActivity : ComponentActivity() {
     /** What onResume does once the user is unlocked; also run by a start that was locked before. */
     private fun resumeWork() {
         vm.resumed = true
-        idleHandler.removeCallbacks(endHomeBounce)
-        vm.homeBounce = false
         DiagLog.i("onResume; screensaver after ${idleBeforeScreensaver() / 1000} s")
         if (SystemClock.uptimeMillis() - dreamAskedAt < 1_000) {
             dreamChecking = true
@@ -881,13 +859,7 @@ class MainActivity : ComponentActivity() {
         vm.resumed = false
         DiagLog.i("onPause")
         GuardSetup.setHomeInFront(this, false)
-        if (HomeGuardService.onAerialPaused()) {
-            // Only Home's bounce: the film plays on, unless Aerial is not back soon after all
-            // (Home pressed again and again, the recent apps opened).
-            vm.homeBounce = true
-            idleHandler.removeCallbacks(endHomeBounce)
-            idleHandler.postDelayed(endHomeBounce, HOME_BOUNCE_MS)
-        }
+        HomeGuardService.onAerialPaused()
         idleHandler.removeCallbacks(showScreensaver)
         idleHandler.removeCallbacks(dreamCheck)
         // From Android 11 the dream is an activity: paused while waiting for it, it showed, and its
@@ -901,9 +873,6 @@ class MainActivity : ComponentActivity() {
         if (locked) return
         DiagLog.i("onStop")
         SelfCompile.onHomeStopped()
-        // Out of sight after all: no bounce to wait out (homeBounce).
-        idleHandler.removeCallbacks(endHomeBounce)
-        vm.homeBounce = false
         // An app, the screensaver or standby in front: the PIN is asked again, as in Lite (#718).
         AerialSettings.relock()
         unregisterReceiver(packageReceiver)
@@ -979,9 +948,6 @@ class MainActivity : ComponentActivity() {
     }
 
     companion object {
-        /** How long the film waits for Aerial to come back from Home's bounce (MFTR0: 120-290 ms). */
-        private const val HOME_BOUNCE_MS = 500L
-
         /**
          * How long after coming back from a page that closed at once Aerial waits for its window's
          * focus before opening the next page (LaunchFallback). Focus followed onResume within

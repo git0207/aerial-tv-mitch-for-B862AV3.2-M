@@ -14,6 +14,13 @@ import java.security.MessageDigest
 internal class WallpaperSnapshots {
     companion object {
         val current = WallpaperSnapshots()
+
+        fun backdropKey(directory: File): String? {
+            val key = File(directory, "key").takeIf { it.isFile }?.let {
+                runCatching { it.readText() }.getOrNull()
+            } ?: return null
+            return key.takeUnless { Wallpapers.isRemovedVideoWallpaper(it.substringBefore('|')) }
+        }
     }
 
     private var generation = 0L
@@ -32,7 +39,7 @@ internal class WallpaperSnapshots {
             val directory = File(context.filesDir, "backdrop")
             val home = File(directory, "home.jpg")
             // The pre-existing cache writes its key only after the image pair is complete.
-            revision = if (File(directory, "key").isFile && home.length() > 0) digest(home) else null
+            revision = if (backdropKey(directory) != null && home.length() > 0) digest(home) else null
             loaded = true
         }
         return revision

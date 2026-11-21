@@ -77,14 +77,13 @@
     <string name="wx_snow">Қар</string>
     <string name="wx_thunder">Нөсер</string>
     <string name="wp_daily_latest">Әрқашан бүгінгісі</string>
-    <string name="wp_live">Аэрожиын · басты экранның жоғарғы қатарында ойнайды (екі қатарлы көріністе — екі қатарда да)</string>
     <string name="wp_photos_rotate">Күніне біреуі</string>
     <string name="wp_daily_note">Bing күн суреті, күн сайын жаңасына ауысады.</string>
     <string name="wp_photos_rotate_note">Күн сайын фотоларыңыздың басқасы.</string>
     <string name="wp_photo_note">Сіздің фотоңыз. Телефоннан тағы жіберу үшін оң жақтағы кодты сканерлеңіз.</string>
     <string name="wp_auto_note">Жарық таңдалған қолданбаның суретінен алынады.</string>
     <string name="wp_screensaver">Экран қорғаушы</string>
-    <string name="ss_follow_hint">Әлі таңдалмаған, сондықтан түсқағазға ілеседі: аэрожиын түсқағазымен аэрожиын, сурет түсқағазымен фотолар, сол суреттен бастап. Бекіту үшін біреуін таңдаңыз.</string>
+    <string name="ss_follow_hint">Экран сақтағыш таңдалғанша тұсқағазға ілеседі: фотолар ағымдағы суреттен басталады. Қолданба мен теледидар кірісінің фонына әуе түсірілімі көрсетіледі.</string>
     <string name="ss_aerial">Аэрожиын</string>
     <string name="ss_photos">Фотолар</string>
     <string name="ss_clock">Сағат</string>
@@ -104,7 +103,7 @@
     <string name="ss_back_off">Ештеңе істемейді</string>
     <string name="ss_back_choice_hint">Басты экранның жоғарғы қатарында «Артқа» не істейді. Кездейсоқ басылса, өшіріңіз; экран қорғаушы бәрібір өзі басталады.</string>
     <string name="ss_quality">Аэрожиын сапасы</string>
-    <string name="ss_quality_hint">«Авто» осы теледидар көрсете алатын ең жақсысын ойнатады: 4K Dolby Vision, 4K немесе 1080p. Түсқағаз аэрожиын болса, экран қорғаушы бейнені түсқағаздың форматында жалғастырады, экран жыпылықтамайды; 4K Dolby Vision таңдалса, Dolby Vision-ға ауысады, сонда экран бір сәтке қараюы мүмкін. 4K Dolby Vision үшін шамамен 25 Мбит/с керек; бейнелер жиі тоқтаса, 1080p таңдаңыз.</string>
+    <string name="ss_quality_hint">Автоматты режим теледидар қолдайтын сапаны таңдайды. 4K Dolby Vision үшін шамамен 25 Мбит/с қажет, режим ауысқанда экран қысқа уақытқа қараюы мүмкін. Бейнелер жиі өткізіліп кетсе, 1080p таңдаңыз.</string>
     <string name="ss_quality_auto">Авто</string>
     <string name="ss_quality_hd">1080p</string>
     <string name="ss_quality_uhd">4K</string>
@@ -216,14 +215,7 @@
     <string name="ss_videos_hint">Телефон бетінен MP4 немесе MOV қосыңыз. Интернетсіз ойнатылады; бейне болмаса, фотолар көрсетіледі.</string>
     <string name="ss_system">Жүйелік</string>
     <string name="ss_system_hint">Теледидардың өз экран сақтағышы (мысалы, Xiaomi суреттері). Aerial өзінікін көрсетпейді.</string>
-    <string name="wp_videos_note">Телефоннан жіберілген өз бейнелеріңіз: дыбыссыз, бірінен соң бірі. Аэрожиын сияқты қозғалады және ағымдағы кадрда тоқтайды.</string>
-    <string name="wp_videos_rotate">Бейнелерім кезекпен</string>
-    <string name="wp_video_note">Телефоннан жіберілген өз бейнеңіз: дыбыссыз, қайталанып ойнайды. Аэрожиын сияқты қозғалады және ағымдағы кадрда тоқтайды.</string>
     <string name="wp_source_note">Осы кірістің басты экран артындағы тірі суреті, дыбыссыз; дыбыс үшін кірістің өзін ашыңыз. Төмендегі қолданбаларда күңгірт фонға ауысады. Сурет жоқ кезде қараңғы фон көрінеді.</string>
-    <string name="st_play">Ойнату</string>
-    <string name="st_play_still">Тыныштықта</string>
-    <string name="st_play_always">Әрдайым</string>
-    <string name="st_play_hint">Тыныштықта: жоғарғы қатарда (екі қатарлы көріністе — екеуінің кез келгенінде) 10 секундтан кейін; кез келген түйме тоқтатады. Әрдайым: түймелер тоқтатпайды, фон сәл күңгірттенеді; төмендегі қолданбаларға өткенде тоқтайды.</string>
     <string name="ss_show_time">Уақыт</string>
     <string name="ss_show_time_hint">Аэрожиын және фото экран қорғауыштарындағы уақыт. Экран күйіп қалмас үшін уақыт пен орын атауы анда-санда сәл жылжиды.</string>
 </resources>

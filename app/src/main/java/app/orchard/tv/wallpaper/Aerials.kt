@@ -70,27 +70,14 @@ object AerialFormats {
             ?: AerialQuality.Hd
     }
 
-    /**
-     * What the aerial wallpaper plays: as chosen, but never Dolby Vision. A TV in Dolby Vision mode
-     * shows the tiles over the film with Dolby's picture settings. A screensaver that carries the
-     * wallpaper's film on plays this too (Screensaver), so the two are one, with no switch.
-     */
-    fun forWallpaper(context: Context): AerialQuality =
-        resolve(context, AerialSettings.aerialQuality).let { if (it == AerialQuality.DolbyVision) AerialQuality.Uhd else it }
+    fun usesExplicitDolbyVision(context: Context): Boolean =
+        AerialSettings.aerialQuality == AerialQuality.DolbyVision && AerialQuality.DolbyVision in supported(context)
 
-    /**
-     * Whether a screensaver of aerials over the aerial wallpaper carries the wallpaper's film on, in
-     * its format. Auto does: going to Dolby Vision from the wallpaper's SDR showed black for 0.9–3.5 s
-     * (Xiaomi MiTV-MFTR0, one 4K decoder) and most TVs blink as they switch modes. Dolby Vision
-     * chosen by hand is played whatever that costs, from the wallpaper's film and moment.
-     */
-    fun screensaverCarriesWallpaper(context: Context): Boolean =
-        !(AerialSettings.aerialQuality == AerialQuality.DolbyVision && AerialQuality.DolbyVision in supported(context))
-
-    /** What a screensaver of aerials starts in; [overWallpaper]: it begins from the aerial wallpaper's film. */
-    fun forScreensaver(context: Context, overWallpaper: Boolean): AerialQuality =
-        if (overWallpaper && screensaverCarriesWallpaper(context)) forWallpaper(context)
-        else resolve(context, AerialSettings.aerialQuality)
+    fun forScreensaver(context: Context, resuming: Boolean): AerialQuality {
+        val quality = resolve(context, AerialSettings.aerialQuality)
+        // Keep the SDR format used for a resumed film unless Dolby Vision was selected explicitly.
+        return if (resuming && quality == AerialQuality.DolbyVision && !usesExplicitDolbyVision(context)) AerialQuality.Uhd else quality
+    }
 
     /** One step down, after a decoder failed on [quality]. */
     fun lower(quality: AerialQuality): AerialQuality = when (quality) {

@@ -50,6 +50,45 @@ class WallpaperSnapshotsTest {
     }
 
     @Test
+    fun oldVideoSelectionsFallbackWithoutChangingPicturesOrExplicitScreensaver() {
+        val prefs = app.getSharedPreferences("wallpaper", Context.MODE_PRIVATE)
+        prefs.edit().putString("selected", "aerial:live").putString("screensaver", "videos").apply()
+        val photo = File(app.filesDir, "photos/mine.jpg")
+        photo.parentFile!!.mkdirs()
+        photo.writeBytes(byteArrayOf(11, 22, 33))
+
+        Wallpapers.init(app)
+
+        assertEquals(Wallpapers.LATEST_DAILY, prefs.getString("selected", null))
+        assertEquals(ScreensaverMode.Videos, Wallpapers.screensaver)
+        assertEquals(WallpaperKind.Photo, Wallpapers.resolve("photo:mine")?.kind)
+        for (id in listOf("aerial:live", "videos:mine", "video:clip")) {
+            Wallpapers.select(id)
+            assertEquals(Wallpapers.LATEST_DAILY, Wallpapers.selectedId)
+            assertEquals(Wallpapers.LATEST_DAILY, prefs.getString("selected", null))
+        }
+        for (id in listOf("daily:20261108", "photo:mine", "photos:rotate", "grad:aurora", "auto", "source:input")) {
+            Wallpapers.select(id)
+            assertEquals(id, Wallpapers.selectedId)
+            assertEquals(id, prefs.getString("selected", null))
+        }
+        assertEquals(ScreensaverMode.Videos, Wallpapers.screensaver)
+        assertEquals(listOf<Byte>(11, 22, 33), photo.readBytes().toList())
+    }
+
+    @Test
+    fun coldReadSkipsOldVideoFramesButPublishesReplacementPicture() {
+        File(directory, "home.jpg").writeBytes(byteArrayOf(11, 22, 33))
+        for (id in listOf("aerial:live", "videos:mine", "video:clip")) {
+            File(directory, "key").writeText("$id|0|1920x1080|97|clear")
+            assertNull(WallpaperSnapshots().revision(app))
+        }
+        assertNull(snapshots.revision(app))
+        publish(96)
+        assertNotNull(WallpaperSnapshots().revision(app))
+    }
+
+    @Test
     fun publishesNewBytesBeforeNotificationAndRejectsStaleReads() {
         val notifications = mutableListOf<String?>()
         val observer = object : ContentObserver(null) {

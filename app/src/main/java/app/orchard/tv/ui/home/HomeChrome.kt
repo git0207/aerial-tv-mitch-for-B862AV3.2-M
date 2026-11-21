@@ -100,7 +100,6 @@ import app.orchard.tv.ui.theme.Glyph
 import app.orchard.tv.ui.theme.GlyphIcon
 import app.orchard.tv.ui.theme.LocalReducedMotion
 import app.orchard.tv.ui.theme.Motion
-import app.orchard.tv.wallpaper.Wallpapers
 import app.orchard.tv.ui.theme.Palette
 import app.orchard.tv.ui.theme.Type
 import app.orchard.tv.ui.components.diagLayer
@@ -210,30 +209,11 @@ fun HomeBackground(
     plate: Rect?,
     scroll: () -> Float,
     collapse: Float,
-    /** How far the aerial wallpaper's film shows through (LiveWallpaper): picture and plate give way to it. */
+    /** How far the TV input shows through the wallpaper. */
     cover: () -> Float = { 0f },
-    /**
-     * Shade what shows through as a picture is shaded: an input's picture, which cannot be shaded
-     * ahead. A film is not shaded, moving or stopped, nor is its picture (Wallpapers): shaded, the
-     * aerials looked grey, and the screensaver carrying the film on was shaded twice (the owner,
-     * Xiaomi MiTV-MFTR0).
-     */
     shadeMoving: Boolean = false,
-    /**
-     * How far the film is stopped (0 to 1) with its glass ready ([frosted]) but its frame not yet
-     * the picture, which takes a moment more where the frame is decoded again (Xiaomi
-     * MiTV-MFTR0). Meanwhile the plate stands over the paused film, so the top row is back on
-     * its glass with the rest of Home, the same plate it keeps once the picture is in.
-     */
-    filmStopped: () -> Float = { 0f },
     /** How far Home has given way to the screensaver carrying its wallpaper on: the plate goes. */
     toSaver: () -> Float = { 0f },
-    /**
-     * The glass for a moving film (Wallpapers.filmFrost, or [frosted] until it has one): the plate
-     * stays over the film on it. Null where the film has none (an input's picture): the plate is
-     * the smoke and the lit edge alone.
-     */
-    filmGlass: ImageBitmap? = null,
     /** The wallpaper's picture unshaded, shown [saverReveal] of the way and [saverPush] into its draw-in. */
     saverImage: ImageBitmap? = null,
     saverReveal: () -> Float = { 0f },
@@ -242,35 +222,25 @@ fun HomeBackground(
     lift: () -> Float = { 0f },
     /** The chosen wallpaper: a new [frosted] of the same one waits for the top row (see Pictures). */
     wallpaper: String? = null,
-    /**
-     * The film is the aerial wallpaper's, whose glass for where it stopped is ready once
-     * [filmStopped]: until then the grid shows [filmGlass], the glass it had while it moved.
-     */
-    glassAwaitsStop: Boolean = false,
-    /** The grid's own glass, where it is not the picture's ([frosted]): the aerial film's (Wallpapers.clipGlass). */
-    gridGlass: ImageBitmap? = null,
 ) {
     val shade = remember { Images.homeShade.asImageBitmap() }
     Box(Modifier.fillMaxSize()) {
         // Over an input's picture, under the pictures: the shading a picture has.
         if (shadeMoving) Canvas(Modifier.fillMaxSize().diagLayer("shade")) {
-            val stopped = maxOf(filmStopped(), cover())
+            val shown = cover()
             // Deep in the grid its glass covers everything.
-            if (stopped < 0.01f || cover() < 0.01f || scroll() > collapse * 0.7f) return@Canvas
-            drawImage(shade, dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()), filterQuality = FilterQuality.Low, alpha = stopped)
+            if (shown < 0.01f || scroll() > collapse * 0.7f) return@Canvas
+            drawImage(shade, dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()), filterQuality = FilterQuality.Low, alpha = shown)
         }
         Box(Modifier.fillMaxSize().diagLayer("picture")) {
-            Pictures(backdrop, gridGlass ?: frosted, filmGlass.takeIf { glassAwaitsStop }, wallpaper, scroll, collapse, cover, filmStopped, toSaver)
+            Pictures(backdrop, frosted, wallpaper, scroll, collapse, cover, toSaver)
         }
         if (saverImage != null) Canvas(Modifier.fillMaxSize()) {
             val a = saverReveal()
             if (a > 0.01f) drawDrawingIn(saverImage, saverPush(), a)
         }
         Box(Modifier.fillMaxSize().diagLayer("plate")) {
-            // Where the film's frames cannot be had (Wallpapers.filmGlassless), the film's plate is
-            // the smoke and the edge alone, see-through, over the film moving or stopped.
-            val glassless = Wallpapers.filmGlassless
-            Plate(frosted ?: backdrop, filmGlass.takeUnless { glassless }, filmGlass != null, glassless, plate, scroll, collapse, cover, filmStopped, toSaver, lift)
+            Plate(frosted ?: backdrop, plate, scroll, collapse, cover, toSaver, lift)
         }
     }
 }
@@ -279,32 +249,22 @@ fun HomeBackground(
  * The sharp picture and the grid's glass. A new wallpaper fades in over the old, which stays whole
  * beneath it: crossfaded, the screen dimmed half-way through.
  *
- * The glass the grid shows stays while it shows (issue #727): a new [frosted] of the same
- * [wallpaper] (the aerial film stopped somewhere new: the exact frame's glass a few seconds after
- * it stopped) waits until the glass is out of sight, on the top row, where the plate takes it over
- * with its own fade. A film that has just stopped shows [filmGlass], the glass it had moving, until
- * the glass of where it stopped is in, which is mostly that same frame's (LiveWallpaper): holding
- * the grid's glass back meanwhile showed the film sharp as the grid came in, then frosted.
+ * A new glass for the same wallpaper waits until the grid's glass is out of sight.
  */
 @Composable
 private fun Pictures(
     backdrop: ImageBitmap?,
     frosted: ImageBitmap?,
-    filmGlass: ImageBitmap?,
     wallpaper: String?,
     scroll: () -> Float,
     collapse: Float,
     cover: () -> Float,
-    filmStopped: () -> Float,
     toSaver: () -> Float,
 ) {
-    // The grid's glass goes as the film carries on into the screensaver, as the apps do: the
-    // screensaver over it is see-through, and the film showed frosted under it.
     fun gridGlass(): Float = (((scroll() / collapse).coerceIn(0f, 1f) - 0.3f) / 0.4f).coerceIn(0f, 1f) * (1f - toSaver())
-    fun moving(): Boolean = filmGlass != null && cover() > 0.01f && filmStopped() < 0.99f
     var held by remember { mutableStateOf(frosted to wallpaper) }
     LaunchedEffect(frosted, wallpaper) {
-        if (wallpaper == held.second) snapshotFlow { gridGlass() < 0.01f || moving() }.first { it }
+        if (wallpaper == held.second) snapshotFlow { gridGlass() < 0.01f }.first { it }
         held = frosted to wallpaper
     }
     Dissolve(
@@ -345,42 +305,27 @@ private fun Pictures(
         label = "glass",
     ) { (frost, _) ->
         val glass = remember(frost) { frost?.let(::plateTinted) }
-        val moved = remember(filmGlass) { filmGlass?.let(::plateTinted) }
         Canvas(Modifier.fillMaxSize()) {
             val g = gridGlass()
             if (g < 0.01f) return@Canvas
-            val src = (if (moving()) moved else null) ?: glass ?: return@Canvas
+            val src = glass ?: return@Canvas
             drawImage(src, dstSize = IntSize(size.width.roundToInt(), size.height.roundToInt()), filterQuality = FilterQuality.Low, alpha = g)
         }
     }
 }
 
-/**
- * The plate under the top row, one layer over whatever is behind it: the picture, or the film
- * once stopped. It gives way only to a moving film, so the swap from the paused film to its
- * picture leaves it as it is. A new glass fades in over the old one, which stays whole beneath
- * it: two plates fading against each other let what is behind show through halfway.
- *
- * Under it, while a film moves, the film's plate ([film]): a film under the window cannot be
- * blurred, so a small key frame of it, frosted, a few seconds old (LiveWallpaper), lies
- * [FILM_FROST] of the way over the film, and a smoke tint and the lit edge over both. The film
- * shows through moving, so the frame's lag reads as the glass's softness. With no [film] (an
- * input's picture) only the smoke and the edge. Drawn only as the plate
- * moves or a new frame fades in, every [GLASS_EVERY_MS]: the film plays with Compose all but still.
- */
+/** The top row's frosted plate, or a tinted edge over a live TV input. */
 @Composable
-private fun Plate(glass: ImageBitmap?, film: ImageBitmap?, filmPlate: Boolean, deepSmoke: Boolean, plate: Rect?, scroll: () -> Float, collapse: Float, cover: () -> Float, filmStopped: () -> Float, toSaver: () -> Float, lift: () -> Float) {
+private fun Plate(glass: ImageBitmap?, plate: Rect?, scroll: () -> Float, collapse: Float, cover: () -> Float, toSaver: () -> Float, lift: () -> Float) {
     var shown by remember { mutableStateOf(glass) }
     var under by remember { mutableStateOf<ImageBitmap?>(null) }
     val swap = remember { Animatable(1f) }
     fun visibility(): Float {
         val rest = 1f - smooth(((scroll() / collapse).coerceIn(0f, 1f) / 0.55f).coerceIn(0f, 1f))
-        return rest * (1f - cover() * (1f - filmStopped())) * (1f - toSaver())
+        return rest * (1f - cover()) * (1f - toSaver())
     }
     LaunchedEffect(glass) {
         if (glass === shown) return@LaunchedEffect
-        // Not on screen (a moving film, or the grid): the new glass simply takes over. Faded in
-        // over the old one, a plate appearing for a stopped film would flash the last film's colours.
         if (visibility() < 0.05f) {
             shown = glass
             under = null
@@ -393,15 +338,10 @@ private fun Plate(glass: ImageBitmap?, film: ImageBitmap?, filmPlate: Boolean, d
         swap.animateTo(1f, tween(450, easing = Motion.EaseOut))
         under = null
     }
-    // Each glass and each new frame is baked off the main thread. Baked while drawing, the film's
-    // frames held up a frame every few seconds (Xiaomi MiTV-MFTR0: frames of 50-70 ms), and the
-    // glass of a film that had just stopped took the main thread for about 37 ms of a menu's
-    // opening. A glass not baked yet is not drawn; until then the one before it stays.
     val density = LocalDensity.current
     var screen by remember { mutableStateOf(Size.Zero) }
     suspend fun baked(glass: ImageBitmap?): ImageBitmap? {
-        // A film's plate is never the still glass (below): nothing to bake.
-        if (glass == null || plate == null || screen == Size.Zero || filmPlate) return null
+        if (glass == null || plate == null || screen == Size.Zero) return null
         val size = screen
         return withContext(Dispatchers.Default) {
             bakePlate(plateTinted(glass), size, plate, with(density) { PlateCorner.toPx() }, with(density) { 1.2.dp.toPx() })
@@ -409,63 +349,22 @@ private fun Plate(glass: ImageBitmap?, film: ImageBitmap?, filmPlate: Boolean, d
     }
     val top by produceState<ImageBitmap?>(null, shown, plate, screen) { value = baked(shown) }
     val bottom by produceState<ImageBitmap?>(null, under, plate, screen) { value = baked(under) }
-    var filmTop by remember { mutableStateOf<ImageBitmap?>(null) }
-    var filmBottom by remember { mutableStateOf<ImageBitmap?>(null) }
-    var smoke by remember { mutableStateOf<ImageBitmap?>(null) }
-    val filmSwap = remember { Animatable(1f) }
-    LaunchedEffect(plate, screen, deepSmoke) {
-        if (plate == null || screen == Size.Zero) return@LaunchedEffect
-        smoke = withContext(Dispatchers.Default) { bakePlate(smokeGlass(if (deepSmoke) FILM_SMOKE_ALONE else FILM_SMOKE), screen, plate, with(density) { PlateCorner.toPx() }, with(density) { 1.2.dp.toPx() }) }
-    }
-    LaunchedEffect(film, plate, screen) {
-        if (film == null || plate == null || screen == Size.Zero) {
-            filmTop = null
-            filmBottom = null
-            return@LaunchedEffect
+    val smoke by produceState<ImageBitmap?>(null, plate, screen) {
+        if (plate != null && screen != Size.Zero) {
+            value = withContext(Dispatchers.Default) {
+                bakePlate(smokeGlass(FILM_SMOKE), screen, plate, with(density) { PlateCorner.toPx() }, with(density) { 1.2.dp.toPx() })
+            }
         }
-        val baked = withContext(Dispatchers.Default) { bakePlate(plateTinted(film), screen, plate, with(density) { PlateCorner.toPx() }, 0f, edge = false) }
-        // Not on screen: the new frame simply takes over.
-        if (filmTop == null || cover() < 0.01f) {
-            filmTop = baked
-            filmBottom = null
-            filmSwap.snapTo(1f)
-            return@LaunchedEffect
-        }
-        filmBottom = filmTop.takeIf { filmSwap.value > 0.5f } ?: filmBottom
-        filmTop = baked
-        filmSwap.snapTo(0f)
-        filmSwap.animateTo(1f, tween(FILM_SWAP_MS, easing = Motion.EaseOut))
-        filmBottom = null
     }
-    val frostPaint = remember { androidx.compose.ui.graphics.Paint() }
 
     Canvas(Modifier.fillMaxSize().onSizeChanged { screen = Size(it.width.toFloat(), it.height.toFloat()) }) {
         if (plate == null) return@Canvas
-        // A film's plate stays the film's, moving or stopped: switched to the still glass as the
-        // film stopped (a menu, Control Center, the grid), it turned from see-through to frosted
-        // all over, another colour (the owner, Xiaomi MiTV-MFTR0).
-        val alpha = if (filmPlate) 0f else visibility()
-        // The film's plate, while the film shows and the plate over a picture does not hide it.
-        // With no frame to frost (an input's picture, which cannot be copied) it is the smoke and
-        // the lit edge alone, so the top row keeps a plate over anything.
+        val alpha = visibility()
         val base = (1f - smooth(((scroll() / collapse).coerceIn(0f, 1f) / 0.55f).coerceIn(0f, 1f))) * (1f - toSaver())
-        val frame = filmTop
         val edge = smoke
-        if (edge != null && (filmPlate || cover() > 0.01f) && alpha < 0.99f && base > 0.01f) {
+        if (edge != null && cover() > 0.01f && alpha < 0.99f && base > 0.01f) {
             val p = (scroll() / collapse).coerceIn(0f, 1f)
             val r = plate.translate(0f, -scroll() - lift()).inflate(PlateSwell.toPx() * smooth((p / 0.55f).coerceIn(0f, 1f)))
-            val t = filmSwap.value
-            val under = filmBottom
-            // The old frame whole under the new, both in one layer laid over the film at FILM_FROST.
-            if (frame != null && t < 1f && under != null) {
-                frostPaint.alpha = FILM_FROST * base
-                drawContext.canvas.saveLayer(r, frostPaint)
-                drawBaked(under, r, 1f)
-                drawBaked(frame, r, t)
-                drawContext.canvas.restore()
-            } else if (frame != null) {
-                drawBaked(frame, r, FILM_FROST * base)
-            }
             drawBaked(edge, r, base)
         }
 
@@ -501,25 +400,7 @@ private fun smokeGlass(color: Int): ImageBitmap =
     android.graphics.Bitmap.createBitmap(1, 1, android.graphics.Bitmap.Config.ARGB_8888)
         .apply { eraseColor(color) }.asImageBitmap()
 
-/** How much of the film plate is its frosted key frame; the rest is the film itself, moving. */
-private const val FILM_FROST = 0.55f
-
-/**
- * The film plate's smoke: a little black, so the tiles keep their contrast over a bright film.
- * Deeper since the film is not shaded (18% before): the shade had darkened the film under it too.
- */
 private val FILM_SMOKE = android.graphics.Color.argb(72, 0, 0, 0)
-
-/**
- * With no frosted frame under it (Wallpapers.filmGlassless): a milky white veil, not smoke. Black
- * (40%) made the plate a dark slab over the film, nothing like glass (the owner, TCL MT5879,
- * 2026-11-01). White lifts it as glass lit from within, as Tigris and CleanTV do with no blur; the
- * lit edge does the rest. The plate with a frosted frame (FILM_SMOKE) the owner keeps as it is.
- */
-private val FILM_SMOKE_ALONE = android.graphics.Color.argb(38, 255, 255, 255)
-
-/** A new key frame fades in over the last: slow, as the glass is soft, and seldom (GLASS_EVERY_MS). */
-private const val FILM_SWAP_MS = 700
 
 /** The Liquid Glass plate under the top row: how far it reaches past the tiles, and its corners. */
 val PlatePadH = 26.dp

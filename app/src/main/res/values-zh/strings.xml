@@ -84,14 +84,13 @@
     <string name="wx_snow">雪</string>
     <string name="wx_thunder">雷雨</string>
     <string name="wp_daily_latest">每日一图</string>
-    <string name="wp_live">动态航拍。在主屏幕第一排（双排时前两排）一直播放，再往下进入其余 App 时停在当前画面并留作壁纸，下次从这一帧接着播。</string>
     <string name="wp_photos_rotate">我的照片 · 每天换</string>
     <string name="wp_daily_note">必应每日一图，每天自动换成当天的。</string>
     <string name="wp_photos_rotate_note">从你的照片里每天换一张。</string>
     <string name="wp_photo_note">你的照片。用手机扫右边的二维码可以继续添加。</string>
     <string name="wp_auto_note">取所选 App 图片里的颜色做背景。</string>
     <string name="wp_screensaver">屏幕保护程序</string>
-    <string name="ss_follow_hint">还没选过，跟随壁纸：航拍壁纸配航拍，其他壁纸配照片，并从这张壁纸开始。选一个就固定下来。</string>
+    <string name="ss_follow_hint">还没选过，跟随壁纸：图片壁纸用照片屏保，从当前图片开始；跟随 App 或信号源用航拍屏保。也可以选定一种屏保。</string>
     <string name="ss_aerial">航拍</string>
     <string name="ss_photos">照片</string>
     <string name="ss_clock">时钟</string>
@@ -111,7 +110,7 @@
     <string name="ss_back_off">不响应</string>
     <string name="ss_back_choice_hint">在主页第一行按返回键时做什么。容易误按的话可以关掉，屏保仍会按时自动开始。</string>
     <string name="ss_quality">航拍画质</string>
-    <string name="ss_quality_hint">「自动」播放这台电视能显示的最好版本：4K 杜比视界、4K 或 1080p。壁纸是航拍时，屏保沿用壁纸的画质接着播，不会黑屏；选了「4K 杜比视界」则屏保切到杜比视界，切换时电视可能黑一下。4K 杜比视界需要约 25 Mbps 的网速，航拍经常跳过时可以选 1080p。</string>
+    <string name="ss_quality_hint">自动按电视能力选择画质。4K 杜比视界约需 25 Mbps，切换画质时电视可能短暂黑屏。如果经常跳片，可选 1080p。</string>
     <string name="ss_quality_auto">自动</string>
     <string name="ss_quality_hd">1080p</string>
     <string name="ss_quality_uhd">4K</string>
@@ -223,14 +222,7 @@
     <string name="ss_videos_hint">扫码从手机添加 MP4 或 MOV 视频，离线轮播；没有可播放的视频时显示照片。</string>
     <string name="ss_system">系统内置</string>
     <string name="ss_system_hint">用电视自带的屏保（比如小米的那些画面），Aerial 不再显示自己的屏保。</string>
-    <string name="wp_videos_note">你从手机发来的视频，静音、一个接一个播放。和航拍一样会动，按键时停在当前画面。</string>
-    <string name="wp_videos_rotate">我的视频 · 轮播</string>
-    <string name="wp_video_note">你从手机发来的这个视频，静音、循环播放。和航拍一样会动，按键时停在当前画面。</string>
     <string name="wp_source_note">这个信号源的实时画面，没有声音，打开这个信号源才有声音。往下选 App 时换成磨砂背景；没有画面时显示深色背景。</string>
-    <string name="st_play">播放</string>
-    <string name="st_play_still">静止时</string>
-    <string name="st_play_always">一直</string>
-    <string name="st_play_hint">静止时：在第一排（双排时前两排）停 10 秒后播放，按键停下。一直：按键不停，背景压暗一点；再往下进入其余 App 时停下。</string>
     <string name="ss_show_time">时间</string>
     <string name="ss_show_time_hint">航拍和照片屏保上的时间。时间和地名会不时挪一点位置，避免烧屏。</string>
 </resources>

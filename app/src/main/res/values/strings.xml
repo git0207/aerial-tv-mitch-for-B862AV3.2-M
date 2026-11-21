@@ -85,14 +85,13 @@
     <string name="wx_snow">Snow</string>
     <string name="wx_thunder">Thunderstorm</string>
     <string name="wp_daily_latest">Daily Photo</string>
-    <string name="wp_live">Moving aerial films. They play while Home is on the top row (either row in two rows) and stop on the frame showing when you go further down to the apps, which stays as the picture; the next film picks up from there.</string>
     <string name="wp_photos_rotate">My Photos, Daily</string>
     <string name="wp_daily_note">Bing\'s photo of the day, changing to the new one every day.</string>
     <string name="wp_photos_rotate_note">A different one of your photos each day.</string>
     <string name="wp_photo_note">Your photo. Scan the code on the right to send more from your phone.</string>
     <string name="wp_auto_note">Light taken from the selected app\'s artwork.</string>
     <string name="wp_screensaver">Screensaver</string>
-    <string name="ss_follow_hint">Not chosen yet, so it follows the wallpaper: aerial films with the aerial wallpaper, photos with a picture, starting from that picture. Choose one to keep it.</string>
+    <string name="ss_follow_hint">Follows the wallpaper until you choose a screensaver: Photos starts with the current picture. Follow App and live inputs use Aerial.</string>
     <string name="ss_aerial">Aerial</string>
     <string name="ss_photos">Photos</string>
     <string name="ss_clock">Clock</string>
@@ -112,7 +111,7 @@
     <string name="ss_back_off">Does Nothing</string>
     <string name="ss_back_choice_hint">What Back does on the top row of Home. Turn it off if it gets pressed by accident; the screensaver still starts on its own.</string>
     <string name="ss_quality">Aerial Quality</string>
-    <string name="ss_quality_hint">Auto plays the best this TV can show: 4K Dolby Vision, 4K or 1080p. Over the aerial wallpaper the screensaver goes on in the wallpaper\'s format, without a blink; with 4K Dolby Vision chosen it switches to Dolby Vision, and the TV may go black for a moment. 4K Dolby Vision needs about 25 Mbps; choose 1080p if films often skip.</string>
+    <string name="ss_quality_hint">Auto selects a quality this TV supports. 4K Dolby Vision needs about 25 Mbps, and the screen may briefly go black when switching modes. Choose 1080p if films often skip.</string>
     <string name="ss_quality_auto">Auto</string>
     <string name="ss_quality_hd">1080p</string>
     <string name="ss_quality_uhd">4K</string>
@@ -224,14 +223,7 @@
     <string name="ss_videos_hint">Add MP4 or MOV films from the phone page. Plays offline; photos are shown when no film can play.</string>
     <string name="ss_system">System</string>
     <string name="ss_system_hint">The TV\'s own screensaver, as it came with the TV (Xiaomi\'s pictures, for one). Aerial shows none of its own.</string>
-    <string name="wp_videos_note">Your own videos, sent from the phone, silent and one after another. They move like the aerial films and stop on the frame showing.</string>
-    <string name="wp_videos_rotate">My Videos, In Turn</string>
-    <string name="wp_video_note">Your own video, sent from the phone, silent and on a loop. It moves like the aerial films and stops on the frame showing.</string>
     <string name="wp_source_note">This input\'s live picture behind Home, without sound; open the input for sound. Going down to the apps, it gives way to a frosted background. A dark picture shows while the input has nothing to show.</string>
-    <string name="st_play">Playing</string>
-    <string name="st_play_still">When still</string>
-    <string name="st_play_always">Always</string>
-    <string name="st_play_hint">When still: after 10 seconds on the top row (either row in two rows); a key stops it. Always: keys do not stop it, and it is shaded a little; it stops when you go further down to the apps.</string>
     <string name="ss_show_time">Time</string>
     <string name="ss_show_time_hint">The time over the aerial and photo screensavers. The time and place name move a little now and then, so nothing stays on the same pixels.</string>
 </resources>
