@@ -21,6 +21,16 @@ internal class WallpaperSnapshots {
             } ?: return null
             return key.takeUnless { Wallpapers.isRemovedVideoWallpaper(it.substringBefore('|')) }
         }
+
+        /** The baked picture available to Home after unlock, before its wallpaper state is loaded. */
+        fun cachedHomeBackdrop(context: Context): File? {
+            if (context.getSharedPreferences("wallpaper", Context.MODE_PRIVATE)
+                    .getString("selected", null) == Wallpapers.AUTO
+            ) return null
+            val directory = File(context.filesDir, "backdrop")
+            if (backdropKey(directory) == null) return null
+            return File(directory, "home.jpg").takeIf { it.isFile && it.length() > 0 }
+        }
     }
 
     private var generation = 0L

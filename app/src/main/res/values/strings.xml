@@ -166,7 +166,7 @@
     <string name="cc_inputs_pin">Show on Home (any number)</string>
     <string name="cc_inputs_boot">When the TV Turns On (one)</string>
     <string name="cc_inputs_boot_none">Nothing, stay on Aerial</string>
-    <string name="boot_cover_live_tv_hint">Starting live TV. Please wait about 30 seconds.</string>
+    <string name="boot_cover_live_tv_hint">Starting live TV\nPlease wait about 30 seconds</string>
     <string name="cc_inputs_boot_hint">Switch to this input when the TV is turned on or wakes from standby. Home still comes back to Aerial. To start on an app instead, a live TV app say, press and hold it on Home and choose Open When TV Turns On.</string>
     <string name="cc_inputs_pin_hint">Pinned inputs appear as tiles at the front of Home; select one to switch straight to it. Long-press a tile to move or remove it.</string>
     <string name="menu_unpin_source">Remove from Home</string>

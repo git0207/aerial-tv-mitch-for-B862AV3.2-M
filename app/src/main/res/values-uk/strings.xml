@@ -158,7 +158,7 @@
     <string name="cc_inputs_pin">Показувати на головному екрані (будь-яка кількість)</string>
     <string name="cc_inputs_boot">Під час вмикання телевізора (одне)</string>
     <string name="cc_inputs_boot_none">Нічого, залишатися в Aerial</string>
-    <string name="boot_cover_live_tv_hint">Запуск прямого ефіру. Зачекайте близько 30 секунд.</string>
+    <string name="boot_cover_live_tv_hint">Запуск прямого ефіру\nЗачекайте близько 30 секунд</string>
     <string name="cc_inputs_boot_hint">Перемикатися на це джерело під час вмикання телевізора або виходу зі сну. Кнопка «Додому» все одно повертає в Aerial.</string>
     <string name="cc_inputs_pin_hint">Закріплені джерела з’являються плитками на початку головного екрана; виберіть одне, щоб одразу перемкнутися. Утримуйте плитку, щоб перемістити або прибрати її.</string>
     <string name="menu_unpin_source">Прибрати з головного екрана</string>
