@@ -4,7 +4,7 @@
 
 ## Fork 来源
 
-本项目 fork 自彭楚金维护的开源 Android TV 桌面，以该仓库的提交 `9129859` 为基线。感谢上游作者与贡献者。[pengchujin/aerial-tv](https://github.com/pengchujin/aerial-tv) · [上游基线](https://github.com/pengchujin/aerial-tv/commit/912985970adf2f0f8885462f997b49bc29720540)
+本项目 fork 自 pengchujin/aerial-tv ，以该仓库的提交 `9129859` 为基线。感谢上游作者与贡献者。[pengchujin/aerial-tv](https://github.com/pengchujin/aerial-tv) · [上游基线](https://github.com/pengchujin/aerial-tv/commit/912985970adf2f0f8885462f997b49bc29720540)
 
 ## 这个 fork 解决什么问题
 
